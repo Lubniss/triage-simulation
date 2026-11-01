@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { RotateCcw } from "lucide-react";
 import { Activity, AlertTriangle, BedDouble, Clock, HeartPulse, Pause, Play, Plus, Stethoscope, Users, CheckCircle2 } from "lucide-react";
 import { PriorityQueue, computeScore, randomName, type Patient } from "@/lib/priority-queue";
 
@@ -26,6 +27,7 @@ const sevMeta = (s: number) =>
   : { label: "Minor", cls: "sev-minor", dot: "bg-minor" };
 
 let idSeq = 1;
+const resetIdSeq = () => { idSeq = 1; };
 const newPatient = (s: Patient["severity_level"]): Patient => {
   const now = Date.now();
   const p: Patient = { id: `P-${String(idSeq++).padStart(3, "0")}`, name: randomName(), severity_level: s, arrival_time: now, dynamic_score: 0 };
@@ -44,6 +46,14 @@ function Index() {
   queueRef.current = queue;
 
   const add = (s: Patient["severity_level"]) => setQueue((q) => [...q, newPatient(s)]);
+
+  const resetAll = () => {
+    setQueue([]);
+    setRooms(DOCTORS.map((d) => ({ doctor: d, patient: null, endsAt: 0, duration: 0 })));
+    setDischarged(0);
+    setNow(Date.now());
+    resetIdSeq();
+  };
 
   // Dynamic aging every 2s
   useEffect(() => {
@@ -120,6 +130,9 @@ function Index() {
             </span>
             <button onClick={() => setRunning((r) => !r)} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 hover:bg-muted transition">
               {running ? <Pause className="size-4" /> : <Play className="size-4" />}{running ? "Pause" : "Resume"}
+            </button>
+            <button onClick={resetAll} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 hover:bg-muted transition" title="Clear waiting list, rooms and counters">
+              <RotateCcw className="size-4" />Reset
             </button>
           </div>
         </div>
