@@ -158,7 +158,7 @@ function Index() {
         <section className="rounded-2xl border border-border bg-card p-4 flex flex-wrap items-center gap-3">
           <div className="relative" ref={menuRef}>
             <button
-              onClick={() => setMenuOpen((o) => !o)}
+              onClick={() => { console.log("[debug] admit toggle"); setMenuOpen((o) => !o); }}
               className="inline-flex items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm font-semibold hover:bg-muted transition"
             >
               Admit patient
