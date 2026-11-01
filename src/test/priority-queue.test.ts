@@ -31,6 +31,6 @@ describe("receptionist rules", () => {
   });
   it("treatment never exceeds 30 seconds", () => {
     expect(treatmentDuration(20_000, 0.999)).toBe(30_000);
-    expect(treatmentDuration(10_000, 0)).toBe(5_000);
+    expect(treatmentDuration(10_000, 0)).toBe(2_500);
   });
 });

@@ -83,7 +83,7 @@ export const randomBloodType = () => BLOOD[Math.floor(Math.random() * BLOOD.leng
 export const randomAge = () => 1 + Math.floor(Math.random() * 90);
 
 export const MAX_TREATMENT_MS = 30_000;
-/** Random duration around the doctor's average (50%–150%), hard-capped at 30s. */
+/** Random duration around the doctor's average (25%–175%), hard-capped at 30s. */
 export function treatmentDuration(avgMs: number, rand = Math.random()): number {
-  return Math.min(MAX_TREATMENT_MS, avgMs * (0.5 + rand));
+  return Math.min(MAX_TREATMENT_MS, avgMs * (0.25 + 1.5 * rand));
 }
