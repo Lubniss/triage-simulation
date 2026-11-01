@@ -21,8 +21,8 @@ interface Room { doctor: string; patient: Patient | null; endsAt: number; durati
 const DOCTORS = ["Dr. Mehta", "Dr. Alvarez", "Dr. Chen"];
 
 const sevMeta = (s: number) =>
-  s <= 2 ? { label: "Critical", cls: "sev-critical", dot: "bg-critical" }
-  : s <= 3 ? { label: "Moderate", cls: "sev-moderate", dot: "bg-moderate" }
+  s <= 1 ? { label: "Critical", cls: "sev-critical", dot: "bg-critical" }
+  : s <= 2 ? { label: "Moderate", cls: "sev-moderate", dot: "bg-moderate" }
   : { label: "Minor", cls: "sev-minor", dot: "bg-minor" };
 
 let idSeq = 1;
@@ -67,7 +67,7 @@ function Index() {
     if (!running || !auto) return;
     const t = setInterval(() => {
       const r = Math.random();
-      add(r < 0.15 ? 1 : r < 0.3 ? 2 : r < 0.6 ? 3 : r < 0.8 ? 4 : 5);
+      add(r < 0.15 ? 1 : r < 0.3 ? 2 : 3);
     }, 3500);
     return () => clearInterval(t);
   }, [running, auto]);
@@ -100,7 +100,7 @@ function Index() {
 
   const sorted = useMemo(() => new PriorityQueue(queue).toSorted(), [queue]);
   const occupied = rooms.filter((r) => r.patient).length;
-  const critCount = queue.filter((p) => p.severity_level <= 2).length;
+  const critCount = queue.filter((p) => p.severity_level === 1).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -136,8 +136,8 @@ function Index() {
         <section className="rounded-2xl border border-border bg-card p-4 flex flex-wrap items-center gap-3">
           <span className="text-sm font-semibold mr-2 flex items-center gap-2"><Plus className="size-4" />Admit patient</span>
           <button onClick={() => add(1)} className="btn-sev bg-critical text-critical-foreground">Add Critical (Level 1)</button>
-          <button onClick={() => add(3)} className="btn-sev bg-moderate text-moderate-foreground">Add Moderate (Level 3)</button>
-          <button onClick={() => add(5)} className="btn-sev bg-minor text-minor-foreground">Add Minor (Level 5)</button>
+          <button onClick={() => add(2)} className="btn-sev bg-moderate text-moderate-foreground">Add Moderate (Level 2)</button>
+          <button onClick={() => add(3)} className="btn-sev bg-minor text-minor-foreground">Add Minor (Level 3)</button>
           <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
             <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} className="accent-primary" />
             Random arrivals
@@ -170,7 +170,7 @@ function Index() {
                 );
               })}
             </ol>
-            <p className="px-4 py-3 border-t border-border text-[11px] text-muted-foreground">Score = severity weight (L1 100 … L5 20) + seconds waited × 1.5</p>
+            <p className="px-4 py-3 border-t border-border text-[11px] text-muted-foreground">Score = severity weight (L1 100, L2 60, L3 20) + seconds waited × 1.5</p>
           </section>
 
           <section>

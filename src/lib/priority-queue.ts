@@ -1,12 +1,12 @@
 export interface Patient {
   id: string;
   name: string;
-  severity_level: 1 | 2 | 3 | 4 | 5;
+  severity_level: 1 | 2 | 3;
   arrival_time: number;
   dynamic_score: number;
 }
 
-export const SEVERITY_WEIGHT: Record<number, number> = { 1: 100, 2: 80, 3: 60, 4: 40, 5: 20 };
+export const SEVERITY_WEIGHT: Record<number, number> = { 1: 100, 2: 60, 3: 20 };
 export const AGING_MULTIPLIER = 1.5; // points per second waited
 
 export function computeScore(p: Patient, now: number): number {
