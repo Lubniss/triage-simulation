@@ -48,6 +48,14 @@ function Index() {
 
   const add = (s: Patient["severity_level"]) => setQueue((q) => [...q, newPatient(s)]);
 
+  // Close admit dropdown on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDoc = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [menuOpen]);
+
   const resetAll = () => {
     setQueue([]);
     setRooms(DOCTORS.map((d) => ({ doctor: d, patient: null, endsAt: 0, duration: 0 })));
