@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { RotateCcw } from "lucide-react";
 import { Activity, AlertTriangle, BedDouble, Clock, HeartPulse, Pause, Play, Plus, Stethoscope, Users, CheckCircle2 } from "lucide-react";
 import { PriorityQueue, computeScore, randomName, type Patient } from "@/lib/priority-queue";
 
@@ -45,6 +46,14 @@ function Index() {
   queueRef.current = queue;
 
   const add = (s: Patient["severity_level"]) => setQueue((q) => [...q, newPatient(s)]);
+
+  const resetAll = () => {
+    setQueue([]);
+    setRooms(DOCTORS.map((d) => ({ doctor: d, patient: null, endsAt: 0, duration: 0 })));
+    setDischarged(0);
+    setNow(Date.now());
+    resetIdSeq();
+  };
 
   // Dynamic aging every 2s
   useEffect(() => {
