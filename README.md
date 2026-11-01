@@ -2,7 +2,7 @@ Triage Simulation
 
 Build a full-stack Hospital Patient Queue Simulation in React.
 
-Core Goal: To create a dynamic healthcare dashboard that visualizes a triage waiting room and 3 active treatment rooms. The system must use a Priority Queue (Min-Heap) algorithm to automatically sort patients by a dynamic severity score, ensuring critical emergencies are treated first.
+Core Goal: To create a dynamic healthcare dashboard that visualizes a triage waiting room and 3 active treatment rooms. The system must use a Priority Queue (Heap) algorithm to automatically sort patients by a dynamic severity score, ensuring critical emergencies are treated first.
 
 UI & Layout Requirements (Using Tailwind CSS & Lucide Icons):
 
