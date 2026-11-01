@@ -114,7 +114,7 @@ function Index() {
             </div>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 font-medium ${running ? "bg-minor-soft text-minor-foreground" : "bg-muted text-muted-foreground"}`}>
+            <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 font-medium ${running ? "sev-minor" : "bg-muted text-muted-foreground"}`}>
               <span className={`size-2 rounded-full ${running ? "bg-minor animate-pulse" : "bg-muted-foreground"}`} />
               {running ? "Simulation running" : "Paused"}
             </span>
