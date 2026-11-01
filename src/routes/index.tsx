@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Activity, AlertTriangle, BedDouble, ChevronDown, Clock, HeartPulse, Pause, Play, Stethoscope, Users, CheckCircle2, RotateCcw } from "lucide-react";
-import { PriorityQueue, computeScore, randomName, type Patient } from "@/lib/priority-queue";
+import { toast } from "sonner";
+import { Activity, AlertTriangle, BedDouble, ClipboardPlus, Clock, Droplet, Siren, HeartPulse, Pause, Play, Stethoscope, Users, CheckCircle2, RotateCcw } from "lucide-react";
+import { PriorityQueue, computeScore, randomAge, randomBloodType, treatmentDuration, type Patient } from "@/lib/priority-queue";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -17,48 +18,55 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-interface Room { doctor: string; patient: Patient | null; endsAt: number; duration: number }
-const DOCTORS = ["Dr. Mehta", "Dr. Alvarez", "Dr. Chen"];
+interface Doctor { name: string; specialty: string; avgMs: number }
+interface Room { doctor: Doctor; patient: Patient | null; endsAt: number }
+const DOCTORS: Doctor[] = [
+  { name: "Dr. Smith", specialty: "Trauma / ER", avgMs: 20_000 },
+  { name: "Dr. Patel", specialty: "Cardiology", avgMs: 15_000 },
+  { name: "Dr. Lee", specialty: "General Practice", avgMs: 10_000 },
+];
+const emptyRooms = (): Room[] => DOCTORS.map((d) => ({ doctor: d, patient: null, endsAt: 0 }));
+const LEVELS = [
+  { v: 1, label: "Critical" }, { v: 2, label: "Emergent" }, { v: 3, label: "Urgent" }, { v: 4, label: "Less urgent" }, { v: 5, label: "Minor" },
+] as const;
 
 const sevMeta = (s: number) =>
-  s <= 1 ? { label: "Critical", cls: "sev-critical", dot: "bg-critical" }
-  : s <= 2 ? { label: "Moderate", cls: "sev-moderate", dot: "bg-moderate" }
-  : { label: "Minor", cls: "sev-minor", dot: "bg-minor" };
+  ({ label: LEVELS[s - 1]?.label ?? "Minor", ...(s <= 2 ? { cls: "sev-critical", dot: "bg-critical" }
+  : s <= 3 ? { cls: "sev-moderate", dot: "bg-moderate" }
+  : { cls: "sev-minor", dot: "bg-minor" }) });
 
 let idSeq = 1;
 const resetIdSeq = () => { idSeq = 1; };
-const newPatient = (s: Patient["severity_level"]): Patient => {
+const newPatient = (name: string, s: Patient["severity_level"], emergency: boolean): Patient => {
   const now = Date.now();
-  const p: Patient = { id: `P-${String(idSeq++).padStart(3, "0")}`, name: randomName(), severity_level: s, arrival_time: now, dynamic_score: 0 };
+  const p: Patient = { id: `P-${String(idSeq++).padStart(3, "0")}`, name, severity_level: s, emergency, blood_type: randomBloodType(), age: randomAge(), arrival_time: now, dynamic_score: 0 };
   p.dynamic_score = computeScore(p, now);
   return p;
 };
 
 function Index() {
   const [queue, setQueue] = useState<Patient[]>([]);
-  const [rooms, setRooms] = useState<Room[]>(DOCTORS.map((d) => ({ doctor: d, patient: null, endsAt: 0, duration: 0 })));
+  const [rooms, setRooms] = useState<Room[]>(emptyRooms);
   const [now, setNow] = useState(Date.now());
   const [running, setRunning] = useState(true);
   const [discharged, setDischarged] = useState(0);
-  const [auto, setAuto] = useState(true);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [name, setName] = useState("");
+  const [sev, setSev] = useState<Patient["severity_level"]>(3);
+  const [emergency, setEmergency] = useState(false);
   const queueRef = useRef(queue);
   queueRef.current = queue;
 
-  const add = (s: Patient["severity_level"]) => setQueue((q) => [...q, newPatient(s)]);
-
-  // Close admit dropdown on outside click
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onDoc = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [menuOpen]);
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const n = name.trim();
+    if (!n) return;
+    setQueue((q) => [...q, newPatient(n, sev, emergency)]);
+    setName(""); setEmergency(false);
+  };
 
   const resetAll = () => {
     setQueue([]);
-    setRooms(DOCTORS.map((d) => ({ doctor: d, patient: null, endsAt: 0, duration: 0 })));
+    setRooms(emptyRooms());
     setDischarged(0);
     setNow(Date.now());
     resetIdSeq();
@@ -81,23 +89,13 @@ function Index() {
     return () => clearInterval(t);
   }, [running]);
 
-  // Random arrivals
-  useEffect(() => {
-    if (!running || !auto) return;
-    const t = setInterval(() => {
-      const r = Math.random();
-      add(r < 0.15 ? 1 : r < 0.3 ? 2 : 3);
-    }, 3500);
-    return () => clearInterval(t);
-  }, [running, auto]);
-
   // Discharge + auto-assign
   useEffect(() => {
     if (!running) return;
     let changed = false;
     let freed = 0;
     const next = rooms.map((r) => {
-      if (r.patient && now >= r.endsAt) { changed = true; freed++; return { ...r, patient: null }; }
+      if (r.patient && now >= r.endsAt) { changed = true; freed++; toast.success(`${r.doctor.name} is now free`); return { ...r, patient: null }; }
       return r;
     });
     if (freed) setDischarged((d) => d + freed);
@@ -107,8 +105,7 @@ function Index() {
         if (next[i]!.patient) continue;
         const p = pq.pop();
         if (!p) break;
-        const duration = 5000 + Math.random() * 10000;
-        next[i] = { ...next[i]!, patient: p, endsAt: now + duration, duration };
+        next[i] = { ...next[i]!, patient: p, endsAt: now + treatmentDuration(next[i]!.doctor.avgMs) };
         changed = true;
       }
       const taken = new Set(next.map((r) => r.patient?.id));
@@ -155,38 +152,28 @@ function Index() {
           <Stat icon={<CheckCircle2 className="size-4" />} label="Discharged" value={discharged} />
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-4 flex flex-wrap items-center gap-3">
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm font-semibold hover:bg-muted transition"
-            >
-              Admit patient
-              <ChevronDown className={`size-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
-            </button>
-            {menuOpen && (
-              <div className="absolute left-0 mt-2 w-56 rounded-xl border border-border bg-card shadow-xl p-1.5 z-30 grid gap-1">
-                {([1, 2, 3] as const).map((lvl) => {
-                  const meta = lvl === 1 ? { label: "Add Critical (Level 1)", dot: "bg-critical" } : lvl === 2 ? { label: "Add Moderate (Level 2)", dot: "bg-moderate" } : { label: "Add Minor (Level 3)", dot: "bg-minor" };
-                  return (
-                    <button
-                      key={lvl}
-                      onClick={() => { add(lvl); setMenuOpen(false); }}
-                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted transition text-left"
-                    >
-                      <span className={`size-2.5 rounded-full ${meta.dot}`} />
-                      {meta.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-            <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} className="accent-primary" />
-            Random arrivals
+        <form onSubmit={submit} className="rounded-2xl border border-border bg-card p-4 grid gap-3 md:grid-cols-[1fr_220px_auto_auto] md:items-end">
+          <div className="md:col-span-4 flex items-center gap-2 font-display font-semibold"><ClipboardPlus className="size-4" />Receptionist Intake</div>
+          <label className="grid gap-1 text-sm">
+            <span className="text-xs font-medium text-muted-foreground">Patient name</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={60} placeholder="e.g. Jane Doe"
+              className="rounded-lg border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring" />
           </label>
-        </section>
+          <label className="grid gap-1 text-sm">
+            <span className="text-xs font-medium text-muted-foreground">Severity</span>
+            <select value={sev} onChange={(e) => setSev(Number(e.target.value) as Patient["severity_level"])}
+              className="rounded-lg border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring">
+              {LEVELS.map((l) => <option key={l.v} value={l.v}>Level {l.v} — {l.label}</option>)}
+            </select>
+          </label>
+          <label className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium cursor-pointer ${emergency ? "sev-critical" : "border-border"}`}>
+            <input type="checkbox" checked={emergency} onChange={(e) => setEmergency(e.target.checked)} className="accent-primary" />
+            <Siren className="size-4" />Emergency Override
+          </label>
+          <button type="submit" disabled={!name.trim()} className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition">
+            Add to queue
+          </button>
+        </form>
 
         <div className="grid lg:grid-cols-[380px_1fr] gap-6">
           <section className="rounded-2xl border border-border bg-card flex flex-col max-h-[70vh]">
@@ -200,29 +187,27 @@ function Index() {
                 const m = sevMeta(p.severity_level);
                 const waited = Math.floor((now - p.arrival_time) / 1000);
                 return (
-                  <li key={p.id} className={`rounded-xl border p-3 flex items-center gap-3 animate-in fade-in slide-in-from-left-2 transition-all ${m.cls}`}>
+                  <li key={p.id} className={`rounded-xl border p-3 flex items-center gap-3 animate-in fade-in slide-in-from-left-2 transition-all ${p.emergency ? "sev-critical ring-2 ring-critical" : m.cls}`}>
                     <span className="font-mono text-xs w-5 text-center opacity-60">{i + 1}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{p.name}</div>
-                      <div className="text-xs opacity-75">{p.id} · L{p.severity_level} {m.label} · waited {waited}s</div>
+                      <div className="font-medium truncate flex items-center gap-1.5">{p.emergency && <Siren className="size-3.5 shrink-0" />}{p.name}</div>
+                      <div className="text-xs opacity-75">{p.id} · L{p.severity_level} {m.label} · {p.age}y · {p.blood_type} · waited {waited}s</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-mono font-bold text-lg leading-none">{p.dynamic_score.toFixed(1)}</div>
-                      <div className="text-[10px] uppercase tracking-wide opacity-60">score</div>
+                      <div className="font-mono font-bold text-lg leading-none">{p.emergency ? "ER" : p.dynamic_score.toFixed(1)}</div>
+                      <div className="text-[10px] uppercase tracking-wide opacity-60">{p.emergency ? "override" : "score"}</div>
                     </div>
                   </li>
                 );
               })}
             </ol>
-            <p className="px-4 py-3 border-t border-border text-[11px] text-muted-foreground">Score = severity weight (L1 100, L2 60, L3 20) + seconds waited × 1.5</p>
+            <p className="px-4 py-3 border-t border-border text-[11px] text-muted-foreground">Score = severity weight (L1 100 … L5 20) + seconds waited × 1.5 · Emergency Override always goes first</p>
           </section>
 
           <section>
             <h2 className="font-display font-semibold flex items-center gap-2 mb-3"><Stethoscope className="size-4" />Treatment Rooms</h2>
             <div className="grid sm:grid-cols-3 gap-4">
               {rooms.map((r, i) => {
-                const left = r.patient ? Math.max(0, (r.endsAt - now) / 1000) : 0;
-                const pct = r.patient ? Math.min(100, (1 - left * 1000 / r.duration) * 100) : 0;
                 const m = r.patient ? sevMeta(r.patient.severity_level) : null;
                 return (
                   <div key={i} className={`rounded-2xl border p-5 min-h-56 flex flex-col transition-all ${r.patient ? "bg-card border-border shadow-lg" : "border-dashed border-border bg-muted/40"}`}>
@@ -230,17 +215,15 @@ function Index() {
                       <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Room {i + 1}</span>
                       <span className={`size-2.5 rounded-full ${r.patient ? m!.dot + " animate-pulse" : "bg-muted-foreground/40"}`} />
                     </div>
-                    <div className="mt-2 flex items-center gap-2 text-sm"><Stethoscope className="size-4 text-primary" />{r.doctor}</div>
+                    <div className="mt-2 flex items-center gap-2 text-sm"><Stethoscope className="size-4 text-primary" /><span className="font-semibold">{r.doctor.name}</span></div>
+                    <div className="text-xs text-muted-foreground">{r.doctor.specialty}</div>
                     {r.patient ? (
                       <div className="mt-auto space-y-3 animate-in fade-in zoom-in-95">
                         <div>
                           <div className="font-display text-lg font-semibold">{r.patient.name}</div>
                           <span className={`inline-block mt-1 text-xs rounded-full px-2 py-0.5 border ${m!.cls}`}>L{r.patient.severity_level} {m!.label}</span>
                         </div>
-                        <div>
-                          <div className="flex justify-between text-xs text-muted-foreground mb-1"><span>Discharge in</span><span className="font-mono text-foreground font-semibold">{left.toFixed(1)}s</span></div>
-                          <div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full bg-primary transition-all duration-300" style={{ width: `${pct}%` }} /></div>
-                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground"><Droplet className="size-3.5" />{r.patient.blood_type} · {r.patient.age}y · <span className="animate-pulse">In treatment…</span></div>
                       </div>
                     ) : (
                       <div className="mt-auto flex flex-col items-center text-muted-foreground py-6"><Activity className="size-6 mb-1" /><span className="text-sm">Available</span></div>
