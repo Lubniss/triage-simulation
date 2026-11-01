@@ -19,3 +19,18 @@ describe("priority queue", () => {
     expect(q.pop()!.id).toBe("minor");
   });
 });
+
+import { treatmentDuration } from "@/lib/priority-queue";
+describe("receptionist rules", () => {
+  it("emergency override jumps ahead of any score", () => {
+    const now = 600_000;
+    const old = mk("old-crit", 1, 0, now);
+    const em = { ...mk("em", 5, now, now), emergency: true };
+    const q = new PriorityQueue([old, em]);
+    expect(q.pop()!.id).toBe("em");
+  });
+  it("treatment never exceeds 30 seconds", () => {
+    expect(treatmentDuration(20_000, 0.999)).toBe(30_000);
+    expect(treatmentDuration(10_000, 0)).toBe(2_500);
+  });
+});

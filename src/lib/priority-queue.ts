@@ -1,12 +1,15 @@
 export interface Patient {
   id: string;
   name: string;
-  severity_level: 1 | 2 | 3;
+  severity_level: 1 | 2 | 3 | 4 | 5;
+  emergency?: boolean;
+  blood_type?: string;
+  age?: number;
   arrival_time: number;
   dynamic_score: number;
 }
 
-export const SEVERITY_WEIGHT: Record<number, number> = { 1: 100, 2: 60, 3: 20 };
+export const SEVERITY_WEIGHT: Record<number, number> = { 1: 100, 2: 80, 3: 60, 4: 40, 5: 20 };
 export const AGING_MULTIPLIER = 1.5; // points per second waited
 
 export function computeScore(p: Patient, now: number): number {
@@ -22,6 +25,8 @@ export class PriorityQueue {
     items.forEach((i) => this.push(i));
   }
   private higher(a: Patient, b: Patient) {
+    if (!!a.emergency !== !!b.emergency) return !!a.emergency;
+    if (a.emergency && b.emergency) return a.arrival_time < b.arrival_time;
     return a.dynamic_score > b.dynamic_score ||
       (a.dynamic_score === b.dynamic_score && a.arrival_time < b.arrival_time);
   }
@@ -72,3 +77,13 @@ const FIRST = ["Ava","Liam","Noah","Emma","Olivia","Mia","Ethan","Zara","Arjun",
 const LAST = ["Patel","Smith","Garcia","Kim","Nguyen","Okafor","Rossi","Müller","Silva","Khan","Lopez","Tanaka","Brown","Haddad","Singh"];
 export const randomName = () =>
   `${FIRST[Math.floor(Math.random() * FIRST.length)]} ${LAST[Math.floor(Math.random() * LAST.length)]}`;
+
+const BLOOD = ["O-","O+","A-","A+","B-","B+","AB-","AB+"];
+export const randomBloodType = () => BLOOD[Math.floor(Math.random() * BLOOD.length)]!;
+export const randomAge = () => 1 + Math.floor(Math.random() * 90);
+
+export const MAX_TREATMENT_MS = 30_000;
+/** Random duration around the doctor's average (25%–175%), hard-capped at 30s. */
+export function treatmentDuration(avgMs: number, rand = Math.random()): number {
+  return Math.min(MAX_TREATMENT_MS, avgMs * (0.25 + 1.5 * rand));
+}
