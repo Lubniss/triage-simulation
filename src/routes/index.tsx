@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { RotateCcw } from "lucide-react";
-import { Activity, AlertTriangle, BedDouble, Clock, HeartPulse, Pause, Play, Plus, Stethoscope, Users, CheckCircle2 } from "lucide-react";
+import { Activity, AlertTriangle, BedDouble, ChevronDown, Clock, HeartPulse, Pause, Play, Stethoscope, Users, CheckCircle2, RotateCcw } from "lucide-react";
 import { PriorityQueue, computeScore, randomName, type Patient } from "@/lib/priority-queue";
 
 export const Route = createFileRoute("/")({
@@ -42,10 +41,20 @@ function Index() {
   const [running, setRunning] = useState(true);
   const [discharged, setDischarged] = useState(0);
   const [auto, setAuto] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const queueRef = useRef(queue);
   queueRef.current = queue;
 
   const add = (s: Patient["severity_level"]) => setQueue((q) => [...q, newPatient(s)]);
+
+  // Close admit dropdown on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDoc = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [menuOpen]);
 
   const resetAll = () => {
     setQueue([]);
@@ -147,10 +156,32 @@ function Index() {
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-4 flex flex-wrap items-center gap-3">
-          <span className="text-sm font-semibold mr-2 flex items-center gap-2"><Plus className="size-4" />Admit patient</span>
-          <button onClick={() => add(1)} className="btn-sev bg-critical text-critical-foreground">Add Critical (Level 1)</button>
-          <button onClick={() => add(2)} className="btn-sev bg-moderate text-moderate-foreground">Add Moderate (Level 2)</button>
-          <button onClick={() => add(3)} className="btn-sev bg-minor text-minor-foreground">Add Minor (Level 3)</button>
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm font-semibold hover:bg-muted transition"
+            >
+              Admit patient
+              <ChevronDown className={`size-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+            </button>
+            {menuOpen && (
+              <div className="absolute left-0 mt-2 w-56 rounded-xl border border-border bg-card shadow-xl p-1.5 z-30 grid gap-1">
+                {([1, 2, 3] as const).map((lvl) => {
+                  const meta = lvl === 1 ? { label: "Add Critical (Level 1)", dot: "bg-critical" } : lvl === 2 ? { label: "Add Moderate (Level 2)", dot: "bg-moderate" } : { label: "Add Minor (Level 3)", dot: "bg-minor" };
+                  return (
+                    <button
+                      key={lvl}
+                      onClick={() => { add(lvl); setMenuOpen(false); }}
+                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted transition text-left"
+                    >
+                      <span className={`size-2.5 rounded-full ${meta.dot}`} />
+                      {meta.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
             <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} className="accent-primary" />
             Random arrivals
