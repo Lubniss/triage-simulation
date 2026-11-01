@@ -51,7 +51,7 @@ function Index() {
   // Close admit dropdown on outside click
   useEffect(() => {
     if (!menuOpen) return;
-    const onDoc = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); };
+    const onDoc = (e: MouseEvent) => { console.log("[debug] outside mousedown on", (e.target as HTMLElement).tagName); if (menuRef.current && !menuRef.current.contains(e.target as Node)) { console.log("[debug] closing menu"); setMenuOpen(false); } };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [menuOpen]);
