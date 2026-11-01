@@ -26,6 +26,7 @@ const sevMeta = (s: number) =>
   : { label: "Minor", cls: "sev-minor", dot: "bg-minor" };
 
 let idSeq = 1;
+const resetIdSeq = () => { idSeq = 1; };
 const newPatient = (s: Patient["severity_level"]): Patient => {
   const now = Date.now();
   const p: Patient = { id: `P-${String(idSeq++).padStart(3, "0")}`, name: randomName(), severity_level: s, arrival_time: now, dynamic_score: 0 };
@@ -120,6 +121,9 @@ function Index() {
             </span>
             <button onClick={() => setRunning((r) => !r)} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 hover:bg-muted transition">
               {running ? <Pause className="size-4" /> : <Play className="size-4" />}{running ? "Pause" : "Resume"}
+            </button>
+            <button onClick={resetAll} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 hover:bg-muted transition" title="Clear waiting list, rooms and counters">
+              <RotateCcw className="size-4" />Reset
             </button>
           </div>
         </div>
