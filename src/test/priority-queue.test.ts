@@ -9,13 +9,13 @@ const mk = (id: string, s: Patient["severity_level"], t: number, now: number): P
 
 describe("priority queue", () => {
   it("pops critical before minor", () => {
-    const q = new PriorityQueue([mk("minor", 5, 0, 0), mk("crit", 1, 0, 0), mk("mod", 3, 0, 0)]);
+    const q = new PriorityQueue([mk("minor", 3, 0, 0), mk("crit", 1, 0, 0), mk("mod", 2, 0, 0)]);
     expect(q.pop()!.id).toBe("crit");
     expect(q.pop()!.id).toBe("mod");
   });
   it("aged minor patient overtakes fresh moderate", () => {
     const now = 60_000;
-    const q = new PriorityQueue([mk("mod", 3, now, now), mk("minor", 5, 0, now)]);
+    const q = new PriorityQueue([mk("mod", 2, now, now), mk("minor", 3, 0, now)]);
     expect(q.pop()!.id).toBe("minor");
   });
 });
