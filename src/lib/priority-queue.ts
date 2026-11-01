@@ -11,7 +11,7 @@ export const AGING_MULTIPLIER = 1.5; // points per second waited
 
 export function computeScore(p: Patient, now: number): number {
   const waitedSec = (now - p.arrival_time) / 1000;
-  return Math.round((SEVERITY_WEIGHT[p.severity_level] + waitedSec * AGING_MULTIPLIER) * 10) / 10;
+  return Math.round((SEVERITY_WEIGHT[p.severity_level]! + waitedSec * AGING_MULTIPLIER) * 10) / 10;
 }
 
 /** Binary max-heap keyed by dynamic_score (ties: earlier arrival first). */
@@ -32,15 +32,15 @@ export class PriorityQueue {
     let i = h.length - 1;
     while (i > 0) {
       const parent = (i - 1) >> 1;
-      if (!this.higher(h[i], h[parent])) break;
-      [h[i], h[parent]] = [h[parent], h[i]];
+      if (!this.higher(h[i]!, h[parent]!)) break;
+      [h[i], h[parent]] = [h[parent]!, h[i]!];
       i = parent;
     }
   }
   pop(): Patient | undefined {
     const h = this.heap;
     if (!h.length) return undefined;
-    const top = h[0];
+    const top = h[0]!;
     const last = h.pop()!;
     if (h.length) {
       h[0] = last;
@@ -48,10 +48,10 @@ export class PriorityQueue {
       for (;;) {
         const l = 2 * i + 1, r = l + 1;
         let best = i;
-        if (l < h.length && this.higher(h[l], h[best])) best = l;
-        if (r < h.length && this.higher(h[r], h[best])) best = r;
+        if (l < h.length && this.higher(h[l]!, h[best]!)) best = l;
+        if (r < h.length && this.higher(h[r]!, h[best]!)) best = r;
         if (best === i) break;
-        [h[i], h[best]] = [h[best], h[i]];
+        [h[i], h[best]] = [h[best]!, h[i]!];
         i = best;
       }
     }

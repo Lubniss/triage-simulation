@@ -85,11 +85,11 @@ function Index() {
     if (next.some((r) => !r.patient) && queueRef.current.length) {
       const pq = new PriorityQueue(queueRef.current);
       for (let i = 0; i < next.length; i++) {
-        if (next[i].patient) continue;
+        if (next[i]!.patient) continue;
         const p = pq.pop();
         if (!p) break;
         const duration = 5000 + Math.random() * 10000;
-        next[i] = { ...next[i], patient: p, endsAt: now + duration, duration };
+        next[i] = { ...next[i]!, patient: p, endsAt: now + duration, duration };
         changed = true;
       }
       const taken = new Set(next.map((r) => r.patient?.id));
